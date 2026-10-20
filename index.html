@@ -1,0 +1,760 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Clothing Profit Calculator</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800&family=Hanken+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* Layout: inputs run down the left; a pinned results column (hero numbers + cost per unit) sits on the right; charts, tables and the price ladder follow full width. On phones everything stacks and a bottom dock keeps the key numbers in view. */
+:root {
+  --bg: #E7EAEE;
+  --panel: #F6F7F9;
+  --panel2: #EAEDF1;
+  --ink: #12161B;
+  --muted: #58616D;
+  --line: #C6CCD4;
+  --accent: #2A44E4;
+  --accent-ink: #FFFFFF;
+  --hero: #2A44E4;
+  --hero-fg: #FFFFFF;
+  --good: #17804A;
+  --warn: #8F6208;
+  --bad: #BE3232;
+  --s1: #2F3944;
+  --s2: #66737F;
+  --s3: #A5B0BC;
+  --s4: #D9A441;
+  --profit: #1F9A5B;
+  --font-display: 'Big Shoulders Display', 'Arial Narrow', Impact, sans-serif;
+  --font-body: 'Hanken Grotesk', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0E1114; --panel: #161A1F; --panel2: #1D2228; --ink: #E9ECF0; --muted: #97A1AD; --line: #2B323A;
+    --accent: #8EA0FF; --accent-ink: #0E1114; --hero: #2F47DC; --hero-fg: #FFFFFF;
+    --good: #4FCB8A; --warn: #E3B04B; --bad: #F27B7B;
+    --s1: #8896A6; --s2: #5F6C7A; --s3: #3C4753; --s4: #C99532; --profit: #3DBB7A;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0E1114; --panel: #161A1F; --panel2: #1D2228; --ink: #E9ECF0; --muted: #97A1AD; --line: #2B323A;
+  --accent: #8EA0FF; --accent-ink: #0E1114; --hero: #2F47DC; --hero-fg: #FFFFFF;
+  --good: #4FCB8A; --warn: #E3B04B; --bad: #F27B7B;
+  --s1: #8896A6; --s2: #5F6C7A; --s3: #3C4753; --s4: #C99532; --profit: #3DBB7A;
+  color-scheme: dark;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { background: var(--bg); color: var(--ink); font: 15px/1.45 var(--font-body); }
+button { font: inherit; }
+
+.page {
+  max-width: 1280px; margin: 0 auto;
+  padding-block: 28px 48px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.top { display: flex; flex-wrap: wrap; gap: 16px 24px; justify-content: space-between; align-items: flex-end; padding-bottom: 18px; border-bottom: 2px solid var(--ink); }
+h1 { margin: 0; font: 800 clamp(34px, 6vw, 54px)/0.95 var(--font-display); letter-spacing: 0.01em; text-transform: uppercase; text-wrap: balance; }
+.lede { margin: 8px 0 0; color: var(--muted); max-width: 56ch; }
+.actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.btn { padding: 8px 14px; border: 1px solid var(--ink); background: transparent; color: var(--ink); border-radius: 4px; font-weight: 600; font-size: 13px; cursor: pointer; }
+.btn:hover { background: var(--panel2); }
+.btn.primary { background: var(--ink); color: var(--bg); }
+.btn.primary:hover { opacity: 0.88; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+#copyMsg { font-size: 12px; color: var(--muted); }
+#copyBox { width: 100%; margin-top: 10px; font: 12px/1.5 var(--font-mono); background: var(--panel); color: var(--ink); border: 1px solid var(--line); border-radius: 4px; padding: 10px; min-height: 140px; }
+
+.grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 520px); gap: 36px; margin-top: 26px; align-items: start; }
+.live { position: sticky; top: 16px; display: flex; flex-direction: column; gap: 16px; max-height: calc(100vh - 32px); overflow-y: auto; scrollbar-width: thin; }
+
+/* inputs */
+.inputs { display: flex; flex-direction: column; gap: 30px; min-width: 0; }
+.group { border-top: 2px solid var(--ink); padding-top: 12px; min-width: 0; }
+.group h2 { margin: 0; font: 800 24px/1 var(--font-display); letter-spacing: 0.04em; text-transform: uppercase; }
+.gh { margin: 4px 0 14px; color: var(--muted); font-size: 13px; }
+.row2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 16px; margin-top: 14px; }
+.row2:first-of-type { margin-top: 0; }
+.span2 { grid-column: 1 / -1; }
+.fld { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+.lbl { font-size: 12px; font-weight: 600; letter-spacing: 0.02em; color: var(--muted); }
+.hint { color: var(--muted); font-size: 12px; line-height: 1.35; }
+.inp { display: flex; align-items: center; border: 1px solid var(--line); background: var(--panel); border-radius: 6px; min-width: 0; }
+.inp:focus-within { outline: 2px solid var(--accent); outline-offset: 1px; }
+.inp input { flex: 1; min-width: 0; width: 100%; border: 0; background: transparent; color: var(--ink); font: 500 15px var(--font-mono); padding: 9px 10px; outline: none; -moz-appearance: textfield; appearance: textfield; font-variant-numeric: tabular-nums; }
+.inp input::-webkit-outer-spin-button, .inp input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.aff { font: 500 14px var(--font-mono); color: var(--muted); font-style: normal; padding-left: 10px; }
+.aff-r { padding: 0 10px 0 0; }
+.ctl { width: 100%; padding: 9px 10px; border: 1px solid var(--line); background: var(--panel); color: var(--ink); border-radius: 6px; font: 500 15px var(--font-body); }
+.ctl:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.seg { display: flex; flex-wrap: wrap; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; background: var(--panel); }
+.seg label { flex: 1 1 auto; position: relative; cursor: pointer; }
+.seg input { position: absolute; inset: 0; opacity: 0; margin: 0; cursor: pointer; }
+.seg span { display: block; padding: 8px 10px; text-align: center; font-weight: 600; font-size: 13px; color: var(--muted); border-right: 1px solid var(--line); }
+.seg label:last-child span { border-right: 0; }
+.seg input:checked + span { background: var(--accent); color: var(--accent-ink); }
+.seg input:focus-visible + span { outline: 2px solid var(--ink); outline-offset: -4px; }
+.checks { display: flex; flex-wrap: wrap; gap: 8px; }
+.chk { display: inline-flex; align-items: center; gap: 7px; padding: 6px 10px; border: 1px solid var(--line); border-radius: 6px; background: var(--panel); font-size: 13px; font-weight: 500; cursor: pointer; }
+.chk input { accent-color: var(--accent); margin: 0; width: 15px; height: 15px; }
+
+/* results shared */
+.hero { background: var(--hero); color: var(--hero-fg); padding: 20px; border-radius: 6px; }
+.hero .tag { margin: 0; font: 800 22px/1.05 var(--font-display); text-transform: uppercase; letter-spacing: 0.04em; overflow-wrap: anywhere; }
+.hero .tag-sub { margin: 3px 0 0; font-size: 12px; opacity: 0.78; letter-spacing: 0.02em; }
+.kpis { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin-top: 18px; }
+.kpi-l { font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; opacity: 0.8; }
+.big { font: 800 clamp(40px, 8vw, 58px)/1 var(--font-display); font-variant-numeric: tabular-nums; letter-spacing: 0.01em; margin-top: 4px; overflow-wrap: anywhere; }
+.health { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; margin-top: 6px; }
+.dot { width: 9px; height: 9px; border-radius: 50%; background: #fff; }
+.dot.good { background: #8DF0B8; } .dot.warn { background: #FFD27A; } .dot.bad { background: #FF9B9B; }
+.tline { margin: 18px 0 0; font-size: 15px; line-height: 1.4; }
+.tline strong { font: 800 26px/1 var(--font-display); letter-spacing: 0.02em; }
+.bar { height: 8px; background: rgba(255,255,255,0.28); border-radius: 2px; overflow: hidden; margin-top: 10px; }
+.bar > i { display: block; height: 100%; background: #fff; }
+.bar-cap { display: flex; justify-content: space-between; font: 500 11px var(--font-mono); opacity: 0.85; margin-top: 4px; }
+.mini { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-top: 16px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.32); }
+.mini b { display: block; font: 600 15px var(--font-mono); font-variant-numeric: tabular-nums; margin-top: 2px; overflow-wrap: anywhere; }
+.warns { margin: 0; padding: 10px 12px; border: 1px solid var(--warn); border-radius: 6px; background: var(--panel); font-size: 13px; display: flex; flex-direction: column; gap: 4px; }
+.warns strong { color: var(--warn); font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; }
+
+.blk { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 16px; min-width: 0; }
+.blk h3 { margin: 0 0 10px; font: 800 19px/1 var(--font-display); letter-spacing: 0.05em; text-transform: uppercase; }
+.blk .cap { margin: -4px 0 10px; color: var(--muted); font-size: 12px; }
+.tbl { width: 100%; border-collapse: collapse; }
+.tbl th { text-align: right; font: 600 11px var(--font-body); letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); padding: 0 0 6px; border-bottom: 1px solid var(--ink); }
+.tbl th:first-child { text-align: left; }
+.tbl td { padding: 7px 0 7px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+.tbl td:first-child { padding-left: 0; }
+.tbl td + td { text-align: right; font: 500 14px var(--font-mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.tbl tr.strong td { font-weight: 700; border-top: 2px solid var(--ink); border-bottom: 0; padding-top: 9px; }
+.tbl tr.strong td:first-child { font-family: var(--font-body); }
+.tbl tr.neg td + td { color: var(--bad); }
+.subl { display: block; font-size: 12px; color: var(--muted); font-weight: 400; white-space: normal; }
+
+.details { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; margin-top: 36px; }
+.stack { display: flex; flex-direction: column; gap: 24px; min-width: 0; }
+.wide { grid-column: 1 / -1; min-width: 0; }
+.split { display: flex; height: 34px; width: 100%; background: var(--panel2); border-radius: 3px; overflow: hidden; position: relative; }
+.split i { display: block; height: 100%; min-width: 0; }
+.split .mark { position: absolute; top: -4px; bottom: -4px; width: 2px; background: var(--ink); }
+.legend { display: flex; flex-direction: column; margin: 12px 0 0; padding: 0; list-style: none; }
+.legend li { display: grid; grid-template-columns: 12px minmax(0, 1fr) auto auto; gap: 10px; align-items: center; padding: 6px 0; border-bottom: 1px solid var(--line); font-size: 13px; }
+.legend li:last-child { border-bottom: 0; }
+.sw { width: 12px; height: 12px; border-radius: 2px; }
+.legend .v { font: 500 13px var(--font-mono); font-variant-numeric: tabular-nums; }
+.legend .p { font: 500 12px var(--font-mono); color: var(--muted); min-width: 44px; text-align: right; }
+.chart { display: block; width: 100%; height: auto; max-width: 100%; }
+.chart .ax { fill: var(--muted); font: 11px var(--font-mono); }
+.chart .tick { fill: var(--muted); font: 11px var(--font-mono); }
+.key { display: flex; flex-wrap: wrap; gap: 6px 18px; margin-top: 8px; font-size: 12px; color: var(--muted); }
+.key span { display: inline-flex; align-items: center; gap: 6px; }
+.key svg { display: block; }
+.scroll { overflow-x: auto; }
+.ladder { min-width: 460px; }
+.ladder tr.cur td { background: var(--panel2); font-weight: 600; }
+.ladder td, .ladder th { padding-right: 10px; }
+.ladder td:first-child { padding-left: 8px; }
+.lnk { border: 0; background: none; padding: 2px 0; color: var(--accent); font: 600 14px var(--font-mono); cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+.badge { font: 600 10px var(--font-body); letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); margin-left: 6px; }
+
+.formulas { margin-top: 24px; }
+.formulas summary { cursor: pointer; font: 800 19px/1 var(--font-display); letter-spacing: 0.05em; text-transform: uppercase; }
+.formulas dl { margin: 14px 0 0; display: grid; grid-template-columns: minmax(130px, 200px) minmax(0, 1fr); gap: 8px 18px; font-size: 13px; }
+.formulas dt { font-weight: 700; }
+.formulas dd { margin: 0; font-family: var(--font-mono); font-size: 12px; color: var(--muted); overflow-wrap: anywhere; }
+
+.dock { display: none; }
+@media (max-width: 979px) {
+  .grid { grid-template-columns: minmax(0, 1fr); gap: 28px; }
+  .live { position: static; max-height: none; overflow: visible; }
+  .details { grid-template-columns: minmax(0, 1fr); }
+  .page { padding-bottom: 110px; }
+  .dock {
+    display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px;
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 20;
+    background: var(--ink); color: var(--bg);
+    padding-top: 10px;
+    padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px));
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+  }
+  .dock span { display: block; font-size: 10px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; opacity: 0.7; }
+  .dock b { display: block; font: 600 16px var(--font-mono); font-variant-numeric: tabular-nums; margin-top: 1px; overflow-wrap: anywhere; }
+}
+@media (max-width: 400px) {
+  .row2 { grid-template-columns: minmax(0, 1fr); }
+  .formulas dl { grid-template-columns: minmax(0, 1fr); gap: 2px; }
+  .formulas dd { margin-bottom: 8px; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .bar > i, .split i { transition: width 0.25s ease; }
+}
+</style>
+
+<div class="page">
+  <header class="top">
+    <div>
+      <h1>Clothing Profit Calculator</h1>
+      <p class="lede">Landed cost, selling price, margin and break-even for one product. Every field updates the results as you type.</p>
+    </div>
+    <div class="actions">
+      <span id="copyMsg" role="status"></span>
+      <button class="btn" id="copyBtn" type="button">Copy summary</button>
+      <button class="btn primary" id="resetBtn" type="button">Reset to defaults</button>
+    </div>
+  </header>
+  <div id="copyWrap" hidden><textarea id="copyBox" readonly aria-label="Summary text"></textarea></div>
+
+  <main class="grid">
+    <form id="inputs" class="inputs" autocomplete="off"></form>
+    <aside class="live" aria-label="Results">
+      <div id="heroOut"></div>
+      <div id="costOut"></div>
+    </aside>
+  </main>
+
+  <div class="details" id="detailsOut"></div>
+
+  <details class="blk formulas">
+    <summary>How it is calculated</summary>
+    <dl>
+      <dt>Manufacturer GST</dt><dd>taxable amount × rate ÷ 100 when the price excludes GST. taxable amount × rate ÷ (100 + rate) when the price already includes it.</dd>
+      <dt>Landed cost per unit</dt><dd>base + printing + shipping + operations + packaging + additional + manufacturer GST. Base and printing are counted once, whether entered together or apart.</dd>
+      <dt>Customer pays</dt><dd>selling price × (1 − discount). Sales GST is added on top when the price excludes GST.</dd>
+      <dt>Net revenue per unit</dt><dd>customer pays ÷ (1 + sales GST rate) when the price includes GST. Otherwise the discounted price itself.</dd>
+      <dt>Gross profit per unit</dt><dd>net revenue − landed cost</dd>
+      <dt>Selling expenses</dt><dd>gateway % × customer pays + fixed fee ÷ units per order + advertising + returns + other</dd>
+      <dt>Contribution profit</dt><dd>gross profit − selling expenses</dd>
+      <dt>Profit margin</dt><dd>contribution profit ÷ net revenue × 100</dd>
+      <dt>Markup</dt><dd>(net revenue − landed cost) ÷ landed cost × 100, using the price after discount and before sales GST</dd>
+      <dt>Break-even price</dt><dd>listed price at which contribution profit is zero. (landed cost + fixed fee per unit + advertising + returns + other) ÷ (net revenue share − gateway % × customer-pays share), then ÷ (1 − discount)</dd>
+      <dt>Units for target</dt><dd>target profit ÷ contribution profit, rounded up</dd>
+      <dt>Total profit</dt><dd>units sold × contribution profit. Units sold is the smaller of planned sales and stock.</dd>
+      <dt>Investment and ROI</dt><dd>investment = landed cost × quantity in stock. ROI = total profit ÷ investment × 100</dd>
+      <dt>Cash break-even units</dt><dd>investment ÷ (net revenue − selling expenses). Units to sell before the whole batch is paid back.</dd>
+    </dl>
+  </details>
+</div>
+
+<div class="dock" id="dock" aria-hidden="true"></div>
+
+<script>
+/* ---------- calculation core (no DOM) ---------- */
+const DEFAULTS = {
+  name: 'Cursed Oversized Hoodie', type: 'hoodie', customType: '', qty: 20,
+  costMode: 'combined', combined: 500, base: 500, print: 0, ship: 100, ops: 25, pack: 0, add: 0,
+  gstRate: 5, gstIncl: 'no', gstBasis: 'mfgprint', customTaxable: 0, taxShip: false, taxPack: false, taxAdd: false,
+  price: 1299, discount: 0, salesGst: 5, salesIncl: 'yes', planQty: 20, target: 10000,
+  gwPct: 2, gwFixed: 0, upo: 1, ads: 0, returns: 0, other: 0
+};
+
+function compute(s) {
+  const n = k => { const v = Number(s[k]); return isFinite(v) && v > 0 ? v : 0; };
+  const frac = k => Math.min(n(k), 100) / 100;
+  const warns = [];
+  const qty = Math.floor(n('qty'));
+  const planned = Math.floor(n('planQty'));
+  const sold = Math.min(planned, qty);
+  if (planned > qty) warns.push('Planned sales (' + planned + ') are higher than stock (' + qty + '). Totals use ' + sold + ' units.');
+
+  const base = n('base'), print = n('print');
+  const mfgEntered = s.costMode === 'combined' ? n('combined') : base + print;
+  const gr = frac('gstRate');
+  const incl = s.gstIncl === 'yes';
+  const ship = n('ship'), ops = n('ops'), pack = n('pack'), add = n('add');
+
+  let mfgTaxable;
+  if (s.gstBasis === 'custom') {
+    mfgTaxable = n('customTaxable');
+    if (incl && mfgTaxable > mfgEntered) {
+      mfgTaxable = mfgEntered;
+      warns.push('The custom taxable amount is higher than the manufacturing price you entered, so it was capped at that price.');
+    }
+  } else if (s.gstBasis === 'mfg' && s.costMode === 'separate') {
+    mfgTaxable = base;
+  } else {
+    mfgTaxable = mfgEntered;
+  }
+  const gstOf = a => incl ? a * gr / (1 + gr) : a * gr;
+  const gM = gstOf(mfgTaxable);
+  const gS = s.taxShip ? gstOf(ship) : 0;
+  const gP = s.taxPack ? gstOf(pack) : 0;
+  const gA = s.taxAdd ? gstOf(add) : 0;
+  const G = gM + gS + gP + gA;
+  const taxable = mfgTaxable + (s.taxShip ? ship : 0) + (s.taxPack ? pack : 0) + (s.taxAdd ? add : 0);
+  const mfgSub = mfgEntered - (incl ? gM : 0);
+  const shipL = ship - (incl ? gS : 0);
+  const packL = pack - (incl ? gP : 0);
+  const addL = add - (incl ? gA : 0);
+  const unitCost = mfgSub + shipL + ops + packL + addL + G;
+  const investment = unitCost * qty;
+
+  const P = n('price');
+  const d = frac('discount');
+  const sr = frac('salesGst');
+  const sIncl = s.salesIncl === 'yes';
+  const Pd = P * (1 - d);
+  const netRev = sIncl ? Pd / (1 + sr) : Pd;
+  const salesGstAmt = sIncl ? Pd - netRev : Pd * sr;
+  const paid = sIncl ? Pd : Pd + salesGstAmt;
+  const f = Math.min(n('gwPct'), 100) / 100;
+  const upo = Math.max(1, n('upo'));
+  const gwPctAmt = f * paid;
+  const gwFixedAmt = n('gwFixed') / upo;
+  const ads = n('ads'), returns = n('returns'), other = n('other');
+  const varSell = gwPctAmt + gwFixedAmt + ads + returns + other;
+
+  const gross = netRev - unitCost;
+  const contrib = gross - varSell;
+  const margin = netRev > 0 ? contrib / netRev * 100 : null;
+  const markup = unitCost > 0 ? (netRev - unitCost) / unitCost * 100 : null;
+
+  const m = sIncl ? 1 / (1 + sr) : 1;
+  const k = sIncl ? 1 : 1 + sr;
+  const denom = m - f * k;
+  const C = unitCost + gwFixedAmt + ads + returns + other;
+  const beDisc = denom > 0 ? C / denom : null;
+  const bePrice = beDisc !== null && d < 1 ? beDisc / (1 - d) : null;
+
+  const target = n('target');
+  let unitsNeeded;
+  if (target <= 0) unitsNeeded = 0;
+  else if (contrib > 0) unitsNeeded = Math.ceil(target / contrib - 1e-9);
+  else unitsNeeded = null;
+
+  let priceForTarget = null;
+  if (sold > 0 && denom > 0 && d < 1) priceForTarget = ((target / sold) + C) / denom / (1 - d);
+
+  const profit = sold * contrib;
+  const profitAll = qty * contrib;
+  const roi = investment > 0 ? profit / investment * 100 : null;
+  const roiAll = investment > 0 ? profitAll / investment * 100 : null;
+  const cashSlope = netRev - varSell;
+  const cashBE = investment <= 0 ? 0 : (cashSlope > 0 ? Math.ceil(investment / cashSlope - 1e-9) : null);
+
+  if (P <= 0) warns.push('Enter a selling price above zero to see profit.');
+  else if (contrib < 0) warns.push('Each unit sells at a loss of ' + (-contrib).toFixed(2) + ' after all costs. Raise the price or cut costs.');
+
+  return {
+    qty, planned, sold, mfgEntered, base, print, taxable, gr, incl, mfgSub, G, shipL, ops, packL, addL, unitCost, investment,
+    P, d, Pd, sr, sIncl, netRev, salesGstAmt, paid, gwPctAmt, gwFixedAmt, ads, returns, other, varSell,
+    gross, contrib, margin, markup, bePrice, target, unitsNeeded, priceForTarget,
+    revenueEx: sold * netRev, collected: sold * paid, profit, profitAll, roi, roiAll, cashSlope, cashBE,
+    remaining: qty - planned, warns
+  };
+}
+
+function niceTicks(lo, hi, n, int) {
+  const span = (hi - lo) || 1;
+  const raw = span / n;
+  const p = Math.pow(10, Math.floor(Math.log10(raw)));
+  const f = raw / p;
+  const m = int ? (f <= 1 ? 1 : f <= 2 ? 2 : f <= 5 ? 5 : 10) : (f <= 1 ? 1 : f <= 2 ? 2 : f <= 2.5 ? 2.5 : f <= 5 ? 5 : 10);
+  let step = m * p;
+  if (int) step = Math.max(1, Math.round(step));
+  const a = Math.floor(lo / step + 1e-9) * step;
+  let b = Math.ceil(hi / step - 1e-9) * step;
+  if (b <= a) b = a + step;
+  const out = [];
+  for (let v = a; v <= b + step / 2; v += step) out.push(Math.round(v * 1e6) / 1e6);
+  return out;
+}
+
+const nf2 = new Intl.NumberFormat('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const nf0 = new Intl.NumberFormat('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+const nf1 = new Intl.NumberFormat('en-IN', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+function money(v, dp) {
+  if (v === null || v === undefined || !isFinite(v)) return '—';
+  const z = Math.abs(v) < (dp === 0 ? 0.5 : 0.005);
+  const body = (dp === 0 ? nf0 : nf2).format(Math.abs(v));
+  return (v < 0 && !z ? '−' : '') + '₹' + body;
+}
+const inr = v => money(v, 2);
+const inr0 = v => money(v, 0);
+const pct = v => (v === null || v === undefined || !isFinite(v)) ? '—' : (Math.abs(v) < 0.05 ? '0.0' : nf1.format(v)).replace('-', '−') + '%';
+function cmp(v) {
+  const a = Math.abs(v), sg = v < 0 ? '−' : '';
+  if (a >= 1e5) return sg + '₹' + (+(a / 1e5).toFixed(2)) + 'L';
+  if (a >= 1e3) return sg + '₹' + (+(a / 1e3).toFixed(1)) + 'k';
+  return sg + '₹' + (+a.toFixed(0));
+}
+</script>
+
+<script>
+/* ---------- interface ---------- */
+(function () {
+  'use strict';
+  const STORE = 'clothing-profit-calc-v1';
+  const TYPES = [['tee', 'T-shirt'], ['oversized', 'Oversized T-shirt'], ['hoodie', 'Hoodie'], ['sweatshirt', 'Sweatshirt'], ['custom', 'Custom product']];
+  let S = Object.assign({}, DEFAULTS);
+  try {
+    const raw = localStorage.getItem(STORE);
+    if (raw) { const o = JSON.parse(raw); if (o && typeof o === 'object') S = Object.assign({}, DEFAULTS, o); }
+  } catch (e) { /* storage unavailable */ }
+  function save() { try { localStorage.setItem(STORE, JSON.stringify(S)); } catch (e) { /* ignore */ } }
+
+  const esc = t => String(t).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const $ = id => document.getElementById(id);
+
+  function num(key, label, o) {
+    o = o || {};
+    const pre = o.pre === undefined ? '₹' : o.pre;
+    return '<label class="fld' + (o.cls ? ' ' + o.cls : '') + '"' + (o.when ? ' data-when="' + o.when + '"' : '') + '>' +
+      '<span class="lbl">' + label + '</span>' +
+      '<span class="inp">' + (pre ? '<i class="aff">' + pre + '</i>' : '') +
+      '<input id="f-' + key + '" data-key="' + key + '" type="number" inputmode="decimal" min="0" step="any">' +
+      (o.suf ? '<i class="aff aff-r">' + o.suf + '</i>' : '') + '</span>' +
+      (o.hint ? '<small class="hint">' + o.hint + '</small>' : '') + '</label>';
+  }
+  function seg(key, label, opts, when) {
+    return '<div class="fld"' + (when ? ' data-when="' + when + '"' : '') + '><span class="lbl" id="l-' + key + '">' + label + '</span>' +
+      '<div class="seg" role="radiogroup" aria-labelledby="l-' + key + '">' +
+      opts.map(o => '<label><input type="radio" name="' + key + '" data-key="' + key + '" value="' + o[0] + '"><span>' + o[1] + '</span></label>').join('') +
+      '</div></div>';
+  }
+  function chk(key, label) {
+    return '<label class="chk"><input type="checkbox" data-key="' + key + '"><span>' + label + '</span></label>';
+  }
+
+  $('inputs').innerHTML =
+    '<section class="group"><h2>Product</h2><p class="gh">What you are costing and how many pieces you hold.</p>' +
+    '<div class="row2">' +
+    '<label class="fld span2"><span class="lbl">Product name</span><input class="ctl" id="f-name" data-key="name" type="text" maxlength="60"></label>' +
+    '<label class="fld"><span class="lbl">Product type</span><select class="ctl" id="f-type" data-key="type">' + TYPES.map(t => '<option value="' + t[0] + '">' + t[1] + '</option>').join('') + '</select></label>' +
+    '<label class="fld" data-when="type:custom"><span class="lbl">Custom type name</span><input class="ctl" id="f-customType" data-key="customType" type="text" maxlength="40" placeholder="e.g. Varsity jacket"></label>' +
+    num('qty', 'Quantity manufactured or in stock', { pre: '', suf: 'units' }) +
+    '</div></section>' +
+
+    '<section class="group"><h2>Cost per unit</h2><p class="gh">Enter every figure per piece, in rupees.</p>' +
+    seg('costMode', 'How does the manufacturer quote the garment?', [['combined', 'Base + print together'], ['separate', 'Base and print apart']]) +
+    '<div class="row2">' +
+    num('combined', 'Base + print cost', { when: 'costMode:combined', cls: 'span2' }) +
+    num('base', 'Base (blank garment) cost', { when: 'costMode:separate' }) +
+    num('print', 'Printing or embroidery cost', { when: 'costMode:separate' }) +
+    '<div class="hint span2" data-when="costMode:separate" id="sumHint"></div>' +
+    num('ship', 'Shipping cost') + num('ops', 'Operations / handling') + num('pack', 'Packaging cost') + num('add', 'Additional cost') +
+    '</div></section>' +
+
+    '<section class="group"><h2>Manufacturer GST</h2><p class="gh">GST your manufacturer bills you, which becomes part of landed cost.</p>' +
+    '<div class="row2">' +
+    num('gstRate', 'GST rate', { pre: '', suf: '%' }) +
+    '<div class="fld">' + seg('gstIncl', 'Is GST in the price you entered?', [['no', 'Added on top'], ['yes', 'Already included']]) + '</div>' +
+    '<div class="span2">' + seg('gstBasis', 'GST is charged on', [['mfg', 'Manufacturing cost only'], ['mfgprint', 'Manufacturing + printing'], ['custom', 'Custom amount']]) + '</div>' +
+    '<div class="hint span2" id="basisHint" hidden></div>' +
+    num('customTaxable', 'Taxable amount per unit', { when: 'gstBasis:custom', cls: 'span2' }) +
+    '<div class="fld span2"><span class="lbl">Also charge GST on</span><div class="checks">' + chk('taxShip', 'Shipping') + chk('taxPack', 'Packaging') + chk('taxAdd', 'Additional cost') + '</div></div>' +
+    '</div></section>' +
+
+    '<section class="group"><h2>Selling price</h2><p class="gh">What the customer sees, and what you want to earn.</p>' +
+    '<div class="row2">' +
+    num('price', 'Selling price per unit') +
+    num('discount', 'Discount', { pre: '', suf: '%' }) +
+    num('salesGst', 'Sales GST rate', { pre: '', suf: '%', hint: 'Use 0 if you do not charge GST on sales.' }) +
+    '<div class="fld">' + seg('salesIncl', 'Selling price', [['yes', 'Includes GST'], ['no', 'Excludes GST']]) + '</div>' +
+    num('planQty', 'Planned sales quantity', { pre: '', suf: 'units' }) +
+    num('target', 'Target total profit') +
+    '</div></section>' +
+
+    '<section class="group"><h2>Selling costs</h2><p class="gh">Costs that only arise when a unit sells.</p>' +
+    '<div class="row2">' +
+    num('gwPct', 'Payment gateway fee', { pre: '', suf: '%', hint: 'Taken on what the customer pays, GST included.' }) +
+    num('gwFixed', 'Gateway fixed fee per order') +
+    num('upo', 'Units per order', { pre: '', suf: 'units', hint: 'Spreads the fixed fee across the order.' }) +
+    num('ads', 'Advertising cost per unit sold') +
+    num('returns', 'Return / refund allowance per unit') +
+    num('other', 'Other selling expenses per unit') +
+    '</div></section>';
+
+  function syncInputs() {
+    document.querySelectorAll('#inputs [data-key]').forEach(el => {
+      const k = el.dataset.key;
+      if (el.type === 'radio') el.checked = String(S[k]) === el.value;
+      else if (el.type === 'checkbox') el.checked = !!S[k];
+      else el.value = S[k];
+    });
+  }
+  function visibility() {
+    document.querySelectorAll('[data-when]').forEach(el => {
+      const p = el.dataset.when.split(':');
+      el.hidden = String(S[p[0]]) !== p[1];
+    });
+    const bh = $('basisHint');
+    const show = S.costMode === 'combined' && S.gstBasis !== 'custom';
+    bh.hidden = !show;
+    if (show) bh.textContent = 'Base and print are entered as one price, so “manufacturing only” and “manufacturing + printing” give the same GST.';
+  }
+  const r2 = v => Math.round(v * 100) / 100;
+  const nz = v => { v = Number(v); return isFinite(v) && v > 0 ? v : 0; };
+
+  function onInput(e) {
+    const el = e.target;
+    if (!el.dataset || !el.dataset.key) return;
+    const k = el.dataset.key;
+    if (el.type === 'radio') {
+      if (!el.checked) return;
+      if (k === 'costMode' && el.value !== S.costMode) {
+        if (el.value === 'separate') { S.base = nz(S.combined); S.print = 0; }
+        else { S.combined = r2(nz(S.base) + nz(S.print)); }
+        S[k] = el.value;
+        syncInputs();
+      } else S[k] = el.value;
+    } else if (el.type === 'checkbox') S[k] = el.checked;
+    else if (el.type === 'number') { const v = parseFloat(el.value); S[k] = isFinite(v) ? v : 0; }
+    else S[k] = el.value;
+    save();
+    update();
+  }
+  $('inputs').addEventListener('input', onInput);
+  $('inputs').addEventListener('change', onInput);
+  $('inputs').addEventListener('submit', e => e.preventDefault());
+
+  /* ---------- result renderers ---------- */
+  function typeLabel() {
+    if (S.type === 'custom') return (S.customType || '').trim() || 'Custom product';
+    return TYPES.filter(t => t[0] === S.type)[0][1];
+  }
+
+  function heroHtml(M) {
+    let health = null;
+    if (M.margin !== null) {
+      health = M.margin >= 30 ? ['good', 'Strong margin'] : M.margin >= 15 ? ['good', 'Healthy margin'] : M.margin >= 0 ? ['warn', 'Thin margin'] : ['bad', 'Selling at a loss'];
+    }
+    let tgt;
+    if (M.target <= 0) {
+      tgt = '<p class="tline">Enter a target profit to see how many units you need to sell.</p>';
+    } else if (M.unitsNeeded === null) {
+      tgt = '<p class="tline">At this price a unit earns nothing, so no quantity reaches ' + inr0(M.target) + '.' + (M.bePrice !== null ? ' Break-even price is ' + inr(M.bePrice) + '.' : '') + '</p>';
+    } else if (M.qty > 0 && M.unitsNeeded > M.qty) {
+      tgt = '<p class="tline">Sell <strong>' + nf0.format(M.unitsNeeded) + '</strong> units to make ' + inr0(M.target) + '. You hold ' + nf0.format(M.qty) + ', so selling out earns ' + inr0(M.profitAll) + '.' +
+        (M.priceForTarget !== null ? ' To reach the target with ' + nf0.format(M.sold) + ' units, price at ' + inr(M.priceForTarget) + '.' : '') + '</p>';
+    } else {
+      const w = M.qty > 0 ? Math.min(100, M.unitsNeeded / M.qty * 100) : 0;
+      tgt = '<p class="tline">Sell <strong>' + nf0.format(M.unitsNeeded) + '</strong> of your ' + nf0.format(M.qty) + ' units to make ' + inr0(M.target) + '.</p>' +
+        '<div class="bar" role="img" aria-label="' + M.unitsNeeded + ' of ' + M.qty + ' units"><i style="width:' + w.toFixed(1) + '%"></i></div>' +
+        '<div class="bar-cap"><span>0</span><span>' + nf0.format(M.unitsNeeded) + ' / ' + nf0.format(M.qty) + ' units</span></div>';
+    }
+    return '<section class="hero">' +
+      '<p class="tag">' + esc(S.name.trim() || 'Untitled product') + '</p>' +
+      '<p class="tag-sub">' + esc(typeLabel()) + ' · ' + nf0.format(M.qty) + ' units · landed cost ' + inr(M.unitCost) + '</p>' +
+      '<div class="kpis">' +
+      '<div><div class="kpi-l">Profit per unit</div><div class="big">' + inr(M.contrib) + '</div></div>' +
+      '<div><div class="kpi-l">Profit margin</div><div class="big">' + pct(M.margin) + '</div>' +
+      (health ? '<div class="health"><i class="dot ' + health[0] + '"></i>' + health[1] + '</div>' : '') + '</div>' +
+      '</div>' + tgt +
+      '<div class="mini">' +
+      '<div><span class="kpi-l">Profit at plan</span><b>' + inr0(M.profit) + '</b></div>' +
+      '<div><span class="kpi-l">ROI</span><b>' + pct(M.roi) + '</b></div>' +
+      '<div><span class="kpi-l">Break-even price</span><b>' + inr(M.bePrice) + '</b></div>' +
+      '</div></section>' +
+      (M.warns.length ? '<div class="warns" role="status"><strong>Check</strong>' + M.warns.map(w => '<span>' + esc(w) + '</span>').join('') + '</div>' : '');
+  }
+
+  function costHtml(M) {
+    const q = nf0.format(M.qty);
+    const crow = (label, unit, sub, cls) => '<tr class="' + (cls || '') + '"><td>' + label + (sub ? '<span class="subl">' + sub + '</span>' : '') + '</td><td>' + inr(unit) + '</td><td>' + inr0(unit * M.qty) + '</td></tr>';
+    const mfgSub = S.costMode === 'separate' ? 'Base ' + inr(M.base) + ' + print ' + inr(M.print) + (M.incl ? ', GST taken out' : '') : 'Base + print' + (M.incl ? ', GST taken out' : '');
+    const gstSub = nf1.format(M.gr * 100) + '% on ' + inr(M.taxable) + (M.incl ? ', already in your prices' : ', added on top');
+    return '<section class="blk"><h3>Cost per unit</h3>' +
+      '<table class="tbl"><thead><tr><th>Item</th><th>Per unit</th><th>' + q + ' units</th></tr></thead><tbody>' +
+      crow('Manufacturing subtotal', M.mfgSub, mfgSub) +
+      crow('Manufacturer GST', M.G, gstSub) +
+      crow('Shipping', M.shipL) +
+      crow('Operations', M.ops) +
+      crow('Packaging', M.packL) +
+      crow('Additional expenses', M.addL) +
+      crow('Total cost', M.unitCost, 'Total production cost for the quantity is the last column', 'strong') +
+      '</tbody></table></section>';
+  }
+
+  function profitTable(M) {
+    const row = (l, v, sub, cls) => '<tr class="' + (cls || '') + '"><td>' + l + (sub ? '<span class="subl">' + sub + '</span>' : '') + '</td><td>' + v + '</td></tr>';
+    const sellSub = 'Gateway ' + inr(M.gwPctAmt + M.gwFixedAmt) + ' · ads ' + inr(M.ads) + ' · returns ' + inr(M.returns) + ' · other ' + inr(M.other);
+    return '<section class="blk"><h3>Profit per unit</h3><table class="tbl"><tbody>' +
+      row('Customer pays', inr(M.paid), M.d > 0 ? 'After ' + nf1.format(M.d * 100) + '% discount' : '') +
+      row('Sales GST collected', inr(M.salesGstAmt)) +
+      row('Net revenue', inr(M.netRev), 'Excluding sales GST') +
+      row('Landed cost', inr(M.unitCost)) +
+      row('Gross profit', inr(M.gross), 'Net revenue − landed cost', M.gross < 0 ? 'neg' : '') +
+      row('Selling expenses', inr(M.varSell), sellSub) +
+      row('Contribution profit', inr(M.contrib), '', 'strong' + (M.contrib < 0 ? ' neg' : '')) +
+      row('Profit margin', pct(M.margin), 'Contribution ÷ net revenue') +
+      row('Markup', pct(M.markup), 'On landed cost, after discount, before sales GST') +
+      row('Break-even selling price', inr(M.bePrice), 'Listed price where contribution is zero') +
+      row('Price to hit target', inr(M.priceForTarget), M.target > 0 ? 'Listed price for ' + inr0(M.target) + ' from ' + nf0.format(M.sold) + ' units' : 'Set a target profit') +
+      '</tbody></table></section>';
+  }
+
+  function totalsTable(M) {
+    const row = (l, v, sub, cls) => '<tr class="' + (cls || '') + '"><td>' + l + (sub ? '<span class="subl">' + sub + '</span>' : '') + '</td><td>' + v + '</td></tr>';
+    const rem = M.remaining < 0 ? '0' : nf0.format(M.remaining);
+    return '<section class="blk"><h3>Totals</h3><table class="tbl"><tbody>' +
+      row('Units sold in plan', nf0.format(M.sold) + ' of ' + nf0.format(M.qty)) +
+      row('Total revenue', inr0(M.revenueEx), 'Excluding sales GST. Customers pay ' + inr0(M.collected) + ' in all') +
+      row('Total estimated profit', inr0(M.profit), '', 'strong' + (M.profit < 0 ? ' neg' : '')) +
+      row('Total production investment', inr0(M.investment), 'Landed cost × ' + nf0.format(M.qty) + ' units') +
+      row('Return on investment', pct(M.roi), 'Planned profit ÷ full investment') +
+      row('Profit if all stock sells', inr0(M.profitAll), 'ROI ' + pct(M.roiAll), M.profitAll < 0 ? 'neg' : '') +
+      row('Stock left after plan', rem + ' units', M.remaining > 0 ? 'Costs ' + inr0(M.remaining * M.unitCost) + ' at landed cost' : '') +
+      row('Units to repay the whole batch', M.cashBE === null ? '—' : nf0.format(M.cashBE), 'Units sold before cash in equals the full investment') +
+      '</tbody></table></section>';
+  }
+
+  function splitHtml(M) {
+    const segs = [
+      ['Manufacturing', M.mfgSub, 'var(--s1)'],
+      ['Manufacturer GST', M.G, 'var(--s2)'],
+      ['Shipping, handling, packing', M.shipL + M.ops + M.packL + M.addL, 'var(--s3)'],
+      ['Selling expenses', M.varSell, 'var(--s4)'],
+      ['Profit', Math.max(0, M.contrib), 'var(--profit)']
+    ];
+    const total = segs.reduce((a, x) => a + x[1], 0);
+    const baseW = Math.max(total, M.netRev) || 1;
+    const loss = M.contrib < 0 && M.netRev > 0;
+    const bar = segs.filter(x => x[1] > 0).map(x => '<i style="width:' + (x[1] / baseW * 100).toFixed(2) + '%;background:' + x[2] + '" title="' + esc(x[0]) + ' ' + inr(x[1]) + '"></i>').join('') +
+      (loss ? '<span class="mark" style="left:' + (M.netRev / baseW * 100).toFixed(2) + '%" title="Net revenue"></span>' : '');
+    const leg = segs.map(x => '<li><span class="sw" style="background:' + x[2] + '"></span><span>' + x[0] + '</span><span class="v">' + inr(x[1]) + '</span><span class="p">' + (M.netRev > 0 ? pct(x[1] / M.netRev * 100) : '—') + '</span></li>').join('');
+    const cap = loss ? 'Costs run past net revenue (the marker) by ' + inr(-M.contrib) + ' per unit.' : 'Share of ' + inr(M.netRev) + ' net revenue per unit.';
+    return '<section class="blk"><h3>Where each sale goes</h3><p class="cap">' + cap + '</p><div class="split">' + bar + '</div><ul class="legend">' + leg + '</ul></section>';
+  }
+
+  function chartHtml(M) {
+    const W = 640, H = 300, L = 62, R = 18, T = 24, B = 38;
+    const cap = Math.max(M.qty, M.planned, 5);
+    const need = (M.unitsNeeded && M.unitsNeeded <= cap * 20) ? M.unitsNeeded : 0;
+    const xMax = Math.max(cap, need);
+    const fA = x => x * M.contrib;
+    const fB = x => x * M.cashSlope - M.investment;
+    const xt = niceTicks(0, xMax, 6, true);
+    const xd = xt[xt.length - 1];
+    const vals = [0, fA(0), fA(xd), fB(0), fB(xd), M.target];
+    const yt = niceTicks(Math.min.apply(null, vals), Math.max.apply(null, vals), 5, false);
+    const y0 = yt[0], y1 = yt[yt.length - 1];
+    const X = v => L + v / xd * (W - L - R);
+    const Y = v => T + (1 - (v - y0) / (y1 - y0)) * (H - T - B);
+    let g = '';
+    yt.forEach(v => {
+      g += '<line x1="' + L + '" x2="' + (W - R) + '" y1="' + Y(v).toFixed(1) + '" y2="' + Y(v).toFixed(1) + '" stroke="var(--line)" stroke-width="1" fill="none"/>' +
+        '<text class="tick" x="' + (L - 8) + '" y="' + (Y(v) + 4).toFixed(1) + '" text-anchor="end">' + cmp(v) + '</text>';
+    });
+    xt.forEach(v => {
+      g += '<text class="tick" x="' + X(v).toFixed(1) + '" y="' + (H - B + 18) + '" text-anchor="middle">' + v + '</text>';
+    });
+    g += '<text class="ax" x="' + ((L + W - R) / 2) + '" y="' + (H - 4) + '" text-anchor="middle">Units sold</text>';
+    if (y0 < 0 && y1 > 0) g += '<line x1="' + L + '" x2="' + (W - R) + '" y1="' + Y(0).toFixed(1) + '" y2="' + Y(0).toFixed(1) + '" stroke="var(--ink)" stroke-width="1.2" fill="none"/>';
+    if (M.qty > 0 && M.qty <= xd) {
+      g += '<line x1="' + X(M.qty).toFixed(1) + '" x2="' + X(M.qty).toFixed(1) + '" y1="' + T + '" y2="' + (H - B) + '" stroke="var(--muted)" stroke-width="1" stroke-dasharray="2 3" fill="none"/>' +
+        '<text class="ax" x="' + (X(M.qty) - 5).toFixed(1) + '" y="' + (T + 9) + '" text-anchor="end">stock ' + M.qty + '</text>';
+    }
+    g += '<polyline points="' + X(0).toFixed(1) + ',' + Y(fB(0)).toFixed(1) + ' ' + X(xd).toFixed(1) + ',' + Y(fB(xd)).toFixed(1) + '" fill="none" stroke="var(--muted)" stroke-width="2" stroke-dasharray="6 4"/>';
+    g += '<polyline points="' + X(0).toFixed(1) + ',' + Y(fA(0)).toFixed(1) + ' ' + X(xd).toFixed(1) + ',' + Y(fA(xd)).toFixed(1) + '" fill="none" stroke="var(--accent)" stroke-width="3"/>';
+    if (M.target > 0) {
+      const ty = Y(M.target).toFixed(1);
+      g += '<line x1="' + L + '" x2="' + (W - R) + '" y1="' + ty + '" y2="' + ty + '" stroke="var(--ink)" stroke-width="1.2" stroke-dasharray="1 4" stroke-linecap="round" fill="none"/>';
+      const markLeft = need && X(need) < L + 150;
+      g += '<text class="ax" x="' + (markLeft ? W - R : L + 6) + '" y="' + (Y(M.target) - 6).toFixed(1) + '" text-anchor="' + (markLeft ? 'end' : 'start') + '">target ' + cmp(M.target) + '</text>';
+      if (need) {
+        const mx = X(need);
+        g += '<circle cx="' + mx.toFixed(1) + '" cy="' + ty + '" r="6" fill="var(--accent)" stroke="var(--bg)" stroke-width="2"/>' +
+          '<text class="ax" x="' + (mx > W * 0.7 ? mx - 10 : mx + 10).toFixed(1) + '" y="' + (Y(M.target) + 18).toFixed(1) + '" text-anchor="' + (mx > W * 0.7 ? 'end' : 'start') + '">' + need + ' units</text>';
+      }
+    }
+    const svg = '<svg class="chart" viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="Profit as units sell, with target and stock markers">' + g + '</svg>';
+    const key = '<div class="key">' +
+      '<span><svg width="22" height="8" aria-hidden="true"><line x1="0" y1="4" x2="22" y2="4" stroke="var(--accent)" stroke-width="3" fill="none"/></svg>Profit on units sold</span>' +
+      '<span><svg width="22" height="8" aria-hidden="true"><line x1="0" y1="4" x2="22" y2="4" stroke="var(--muted)" stroke-width="2" stroke-dasharray="6 4" fill="none"/></svg>Cash after paying for the whole batch</span></div>';
+    return '<section class="blk"><h3>Profit as units sell</h3><p class="cap">Where the line crosses the target is the units you need. The dashed line stays below zero until the full batch is paid back.</p>' + svg + key + '</section>';
+  }
+
+  function ladderHtml(M) {
+    const P = M.P;
+    const step = P < 600 ? 50 : P < 1500 ? 100 : 200;
+    let rows = '';
+    for (let i = -3; i <= 3; i++) {
+      const p = P + i * step;
+      if (p <= 0) continue;
+      const m = compute(Object.assign({}, S, { price: p }));
+      rows += '<tr class="' + (i === 0 ? 'cur' : '') + '"><td><button class="lnk" type="button" data-price="' + p + '">' + inr0(p) + '</button>' + (i === 0 ? '<span class="badge">current</span>' : '') + '</td>' +
+        '<td>' + pct(m.margin) + '</td><td>' + inr(m.contrib) + '</td><td>' + (m.target <= 0 ? '—' : m.unitsNeeded === null ? 'never' : nf0.format(m.unitsNeeded)) + '</td><td>' + inr0(m.profit) + '</td></tr>';
+    }
+    return '<section class="blk"><h3>Price ladder</h3><p class="cap">Same costs at nearby prices. Select a price to use it.</p><div class="scroll"><table class="tbl ladder"><thead><tr><th>Listed price</th><th>Margin</th><th>Profit / unit</th><th>Units for target</th><th>Profit at plan</th></tr></thead><tbody>' + rows + '</tbody></table></div></section>';
+  }
+
+  function dockHtml(M) {
+    return '<div><span>Profit / unit</span><b>' + inr(M.contrib) + '</b></div>' +
+      '<div><span>Margin</span><b>' + pct(M.margin) + '</b></div>' +
+      '<div><span>Units for target</span><b>' + (M.target <= 0 ? '—' : M.unitsNeeded === null ? 'never' : nf0.format(M.unitsNeeded)) + '</b></div>';
+  }
+
+  let last = null;
+  function update() {
+    visibility();
+    if (S.costMode === 'separate') $('sumHint').textContent = 'Base + print = ' + inr(nz(S.base) + nz(S.print)) + ' per unit.';
+    const M = compute(S);
+    last = M;
+    $('heroOut').innerHTML = heroHtml(M);
+    $('costOut').innerHTML = costHtml(M);
+    $('detailsOut').innerHTML =
+      '<div class="stack">' + profitTable(M) + totalsTable(M) + '</div>' +
+      '<div class="stack">' + splitHtml(M) + chartHtml(M) + '</div>' +
+      '<div class="wide">' + ladderHtml(M) + '</div>';
+    $('dock').innerHTML = dockHtml(M);
+  }
+
+  $('detailsOut').addEventListener('click', e => {
+    const b = e.target.closest ? e.target.closest('[data-price]') : null;
+    if (!b) return;
+    S.price = parseFloat(b.dataset.price) || 0;
+    $('f-price').value = S.price;
+    save();
+    update();
+  });
+
+  $('resetBtn').addEventListener('click', () => {
+    S = Object.assign({}, DEFAULTS);
+    save();
+    syncInputs();
+    update();
+    $('copyWrap').hidden = true;
+    $('copyMsg').textContent = 'Defaults restored.';
+  });
+
+  $('copyBtn').addEventListener('click', () => {
+    const M = last || compute(S);
+    const lines = [
+      (S.name.trim() || 'Untitled product') + ' (' + typeLabel() + '), ' + M.qty + ' units',
+      'Landed cost per unit: ' + inr(M.unitCost) + ' (total ' + inr0(M.investment) + ')',
+      'Selling price: ' + inr(M.P) + (M.sIncl ? ' incl. ' : ' excl. ') + nf1.format(M.sr * 100) + '% GST, discount ' + nf1.format(M.d * 100) + '%',
+      'Net revenue per unit: ' + inr(M.netRev),
+      'Profit per unit: ' + inr(M.contrib) + ', margin ' + pct(M.margin) + ', markup ' + pct(M.markup),
+      'Break-even price: ' + inr(M.bePrice),
+      'Units for ' + inr0(M.target) + ' target: ' + (M.unitsNeeded === null ? 'not reachable at this price' : M.unitsNeeded),
+      'Planned sales: ' + M.sold + ' units, revenue ' + inr0(M.revenueEx) + ', profit ' + inr0(M.profit) + ', ROI ' + pct(M.roi),
+      'Profit if all stock sells: ' + inr0(M.profitAll)
+    ].join('\n');
+    const fallback = () => {
+      const box = $('copyBox');
+      box.value = lines;
+      $('copyWrap').hidden = false;
+      box.focus();
+      box.select();
+      $('copyMsg').textContent = 'Copy was blocked. Text is selected below.';
+    };
+    try {
+      navigator.clipboard.writeText(lines).then(() => {
+        $('copyWrap').hidden = true;
+        $('copyMsg').textContent = 'Summary copied.';
+      }, fallback);
+    } catch (err) { fallback(); }
+  });
+
+  syncInputs();
+  update();
+})();
+</script>
+
+</body></html>
