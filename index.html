@@ -249,7 +249,7 @@ const DEFAULTS = {
   name: 'Cursed Oversized Hoodie', type: 'hoodie', customType: '', qty: 20,
   costMode: 'combined', combined: 500, base: 500, print: 0, ship: 100, ops: 25, pack: 0, add: 0,
   gstRate: 5, gstIncl: 'no', gstBasis: 'mfgprint', customTaxable: 0, taxShip: false, taxPack: false, taxAdd: false,
-  price: 1299, discount: 0, salesGst: 5, salesIncl: 'yes', planQty: 20, target: 10000,
+  price: 1299, discount: 0, salesGst: 5, salesIncl: 'yes', planQty: 20, target: 0,
   gwPct: 2, gwFixed: 0, upo: 1, ads: 0, returns: 0, other: 0
 };
 
@@ -457,7 +457,7 @@ function cmp(v) {
     num('salesGst', 'Sales GST rate', { pre: '', suf: '%', hint: 'Use 0 if you do not charge GST on sales.' }) +
     '<div class="fld">' + seg('salesIncl', 'Selling price', [['yes', 'Includes GST'], ['no', 'Excludes GST']]) + '</div>' +
     num('planQty', 'Planned sales quantity', { pre: '', suf: 'units' }) +
-    num('target', 'Target total profit') +
+    num('target', 'How much profit do you want to make?', { hint: 'Type your own goal. Results show the units to sell and the price needed.' }) +
     '</div></section>' +
 
     '<section class="group"><h2>Selling costs</h2><p class="gh">Costs that only arise when a unit sells.</p>' +
@@ -526,7 +526,7 @@ function cmp(v) {
     }
     let tgt;
     if (M.target <= 0) {
-      tgt = '<p class="tline">Enter a target profit to see how many units you need to sell.</p>';
+      tgt = '<p class="tline">Type how much profit you want to make (left side, Selling price) to see how many units to sell.</p>';
     } else if (M.unitsNeeded === null) {
       tgt = '<p class="tline">At this price a unit earns nothing, so no quantity reaches ' + inr0(M.target) + '.' + (M.bePrice !== null ? ' Break-even price is ' + inr(M.bePrice) + '.' : '') + '</p>';
     } else if (M.qty > 0 && M.unitsNeeded > M.qty) {
